@@ -141,7 +141,7 @@ public class ZMQ
     /**
      * Old alias for ROUTER flag.
      * Flag to specify the receiving part of a XREQ socket.
-     *
+     * 我的测试版本
      * @deprecated As of release 3.0 of zeromq, replaced by {@link #ROUTER}
      */
     @Deprecated
