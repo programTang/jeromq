@@ -275,6 +275,7 @@ public class Pipe extends ZObject
 
     //  Writes a message to the underlying pipe. Returns false if the
     //  message cannot be written because high watermark was reached.
+    //  往管道写消息，如果因为高水位标志达到，返回 false
     public boolean write(Msg msg)
     {
         if (!checkWrite()) {

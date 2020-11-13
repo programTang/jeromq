@@ -8,6 +8,7 @@ import zmq.io.IOThread;
 import zmq.util.Errno;
 
 //  Base class for objects forming a part of ownership hierarchy.
+//  一些对象的基类，用来处理对象的初始化和销毁
 //  It handles initialization and destruction of such objects.
 public abstract class Own extends ZObject
 {
@@ -18,30 +19,38 @@ public abstract class Own extends ZObject
     private boolean terminating;
 
     //  Sequence number of the last command sent to this object.
+    //  最后一个发送至本对象的命令序号
     private final AtomicLong sendSeqnum;
 
     //  Sequence number of the last command processed by this object.
+    //  当前已经处理的最后一个命令序号
     private long processedSeqnum;
 
     //  Socket owning this object. It's responsible for shutting down
     //  this object.
+    //  当前对象属于哪个 socket ，负责关闭这个对象
     private Own owner;
 
     //  List of all objects owned by this socket. We are responsible
     //  for deallocating them before we quit.
     //typedef std::set <own_t*> owned_t;
+    //  当前 socket 所拥有的所有对象，它在退出之前要负责回收这些对象
     private final Set<Own> owned;
 
     //  Number of events we have to get before we can destroy the object.
+    //
     private int termAcks;
 
     public final Errno errno;
 
     //  Note that the owner is unspecified in the constructor.
     //  It'll be supplied later on when the object is plugged in.
+    //  注意在构造函数中没有指定拥有者
+    //  将会在稍后对象被插入的时候指定
 
     //  The object is not living within an I/O thread. It has it's own
     //  thread outside of 0MQ infrastructure.
+    //
     protected Own(Ctx parent, int tid)
     {
         super(parent, tid);
@@ -175,6 +184,7 @@ public abstract class Own extends ZObject
         }
 
         //  As for the root of the ownership tree, there's no one to terminate it,
+        //  作为关系树的根节点，没有其他的对象来终止它，所以它必须要自己终结自己。
         //  so it has to terminate itself.
         if (owner == null) {
             processTerm(options.linger);
@@ -242,11 +252,13 @@ public abstract class Own extends ZObject
     {
         if (terminating && processedSeqnum == sendSeqnum.get() && termAcks == 0) {
             //  Sanity check. There should be no active children at this point.
+            System.out.println("当前对象："+ this + "termAcks 为0，设置 destroy 为 true");
             assert (owned.isEmpty()) : owned;
 
             //  The root object has nobody to confirm the termination to.
             //  Other nodes will confirm the termination to the owner.
             if (owner != null) {
+                //发送销毁应答
                 sendTermAck(owner);
             }
 

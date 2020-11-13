@@ -218,7 +218,7 @@ public enum Sockets
     public static SessionBase createSession(IOThread ioThread, boolean connect, SocketBase socket, Options options,
                                             Address addr)
     {
-        return values()[options.type].create(ioThread, connect, socket, options, addr);
+        return Sockets.values()[options.type].create(ioThread, connect, socket, options, addr);
     }
 
     public static SocketBase create(int socketType, Ctx parent, int tid, int sid)

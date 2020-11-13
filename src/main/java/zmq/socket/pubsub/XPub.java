@@ -40,6 +40,7 @@ public class XPub extends SocketBase
     private final Mtrie manualSubscriptions;
 
     //  Distributor of messages holding the list of outbound pipes.
+    //  消息分发者 存储了发送消息管道
     private final Dist dist;
 
     // If true, send all subscription messages upstream, not just

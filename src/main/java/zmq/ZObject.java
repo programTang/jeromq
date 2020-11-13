@@ -8,6 +8,7 @@ import zmq.pipe.YPipeBase;
 
 //  Base class for all objects that participate in inter-thread
 //  communication.
+// 内部进程间所有对象通信的基类
 public abstract class ZObject
 {
     //  Context provides access to the global state.
@@ -45,7 +46,9 @@ public abstract class ZObject
     @SuppressWarnings("unchecked")
     final void processCommand(Command cmd)
     {
-        //        System.out.println(Thread.currentThread().getName() + ": Processing command " + cmd);
+//        if (Thread.currentThread().getName().equals("reaper-1")){
+            System.out.println(Thread.currentThread().getName() + " 接收命令：" + cmd);
+//        }
         switch (cmd.type) {
         case ACTIVATE_READ:
             processActivateRead();

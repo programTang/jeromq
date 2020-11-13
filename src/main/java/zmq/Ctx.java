@@ -80,6 +80,7 @@ public class Ctx
     //  Sockets belonging to this context. We need the list so that
     //  we can notify the sockets when zmq_term() is called. The sockets
     //  will return ETERM then.
+    // context 下的所有的 sockets，当 context 被关闭的时候，需要告知每一个 socket
     private final List<SocketBase> sockets;
 
     //  List of unused thread slots.
@@ -87,6 +88,7 @@ public class Ctx
 
     //  If true, init has been called but no socket has been created
     //  yet. Launching of I/O threads is delayed.
+    //  当是 true 的时候，代表该 context 还没有创建 socket，IO线程和Reaper线程都还没有启动
     private final AtomicBoolean starting = new AtomicBoolean(true);
 
     //  If true, zmq_term was already called.
@@ -103,7 +105,7 @@ public class Ctx
     // deallocation.
     private final List<Selector> selectors = new ArrayList<>();
 
-    //  The reaper thread.
+    //  The reaper thread. 收割线程
     private Reaper reaper;
 
     //  I/O threads.
@@ -409,6 +411,8 @@ public class Ctx
         SocketBase s = null;
         slotSync.lock();
         try {
+            //是否已经创建过 socket
+            //如果是 true 代表还没创建，设置成false，然后去初始化延迟加载的内容：io线程 reaper线程
             if (starting.compareAndSet(true, false)) {
                 initSlots();
             }
@@ -427,9 +431,11 @@ public class Ctx
             int slot = emptySlots.pollLast();
 
             //  Generate new unique socket ID.
+            // socket 的 id,从1开始递增
             int sid = maxSocketId.incrementAndGet();
 
             //  Create the socket and register its mailbox.
+            //  创建 socket 注册邮箱
             s = Sockets.create(type, this, slot, sid);
             if (s == null) {
                 emptySlots.addLast(slot);
@@ -451,23 +457,30 @@ public class Ctx
         try {
             //  Initialize the array of mailboxes. Additional two slots are for
             //  zmq_term thread and reaper thread.
+            //  初始化 mailbox 的数组，还有两个延迟加载
             int ios;
             optSync.lock();
             try {
+                //1
                 ios = ioThreadCount;
+                //1027
                 slotCount = maxSockets + ioThreadCount + 2;
             }
             finally {
                 optSync.unlock();
             }
+            //3
             slots = new IMailbox[slotCount];
 
             //  Initialize the infrastructure for zmq_term thread.
+            // slots[0] 是 term 停止context 的 mailbox
             slots[TERM_TID] = termMailbox;
 
             //  Create the reaper thread.
             reaper = new Reaper(this, REAPER_TID);
+            // slots[1] 是 reaper mailbox
             slots[REAPER_TID] = reaper.getMailbox();
+            //启动 reaper 线程
             reaper.start();
 
             //  Create I/O thread objects and launch them.
@@ -481,6 +494,7 @@ public class Ctx
 
             //  In the unused part of the slot array, create a list of empty slots.
             for (int i = slotCount - 1; i >= ios + 2; i--) {
+                //emptySlots 初始化 从1026不断入队，知道队尾是3，一共1024个元素
                 emptySlots.add(i);
                 slots[i] = null;
             }
@@ -561,7 +575,9 @@ public class Ctx
     //  Send command to the destination thread.
     void sendCommand(int tid, final Command command)
     {
-        //        System.out.println(Thread.currentThread().getName() + ": Sending command " + command);
+//        if (Thread.currentThread().getName().equals("reaper-1")) {
+            System.out.println(Thread.currentThread().getName() + " 发送命令：" + command);
+//        }
         slots[tid].send(command);
     }
 

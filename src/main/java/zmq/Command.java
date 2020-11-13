@@ -78,7 +78,7 @@ public class Command
     @Override
     public String toString()
     {
-        return "Cmd" + "[" + destination + ", " + (destination == null ? "Reaper" : destination.getTid() + ", ") + type
-                + (arg == null ? "" : ", " + arg) + "]";
+        return "Cmd" + "[destination: " + destination + ", " + (destination == null ? "Reaper" : destination.getTid() + ", ") +"type: "+ type
+                +", arg: "+ (arg == null ? "" : ", " + arg) + "]";
     }
 }

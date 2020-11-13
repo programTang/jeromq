@@ -13,11 +13,14 @@ public class Dist
     private final List<Pipe> pipes;
 
     //  Number of all the pipes to send the next message to.
+    //  下条消息要发送到管道的数量
     private int matching;
 
     //  Number of active pipes. All the active pipes are located at the
     //  beginning of the pipes array. These are the pipes the messages
     //  can be sent to at the moment.
+    //  active 激活状态的管道的数量
+    //  所有激活的管道都在管道数组的前面 都可以被发送消息。
     private int active;
 
     //  Number of pipes eligible for sending messages to. This includes all
@@ -25,9 +28,12 @@ public class Dist
     //  messages to (the HWM is not yet reached), but sending a message
     //  to them would result in partial message being delivered, ie. message
     //  with initial parts missing.
+    //  合格管道的数量，包含所有的激活管道和理论上我可以发送消息的管道（HWM还没达到）。
+    //  但是发送消息给他们可能会引起消息的部分丢失，比如消息的初始化部分
     private int eligible;
 
     //  True if last we are in the middle of a multipart message.
+    //  是否正处于发送一个多部分消息中， 如果true，代表正在发送一个多部分消息。
     private boolean more;
 
     public Dist()
@@ -40,18 +46,24 @@ public class Dist
     }
 
     //  Adds the pipe to the distributor object.
+    //  增加管道
     public void attach(Pipe pipe)
     {
         //  If we are in the middle of sending a message, we'll add new pipe
         //  into the list of eligible pipes. Otherwise we add it to the list
         //  of active pipes.
+        //  如果我们正处于发送一个多部分消息中（代表该消息还未发送全部），我们把新的管道加到合格的管道中（不会往里面发送消息）
+        //  否则加到
         if (more) {
+            //加载末尾
             pipes.add(pipe);
+            //把刚加的管道放到合格的位置
             Collections.swap(pipes, eligible, pipes.size() - 1);
             eligible++;
         }
         else {
             pipes.add(pipe);
+            //把刚加的管道放到激活可用的管道的位置
             Collections.swap(pipes, active, pipes.size() - 1);
             active++;
             eligible++;
@@ -60,6 +72,8 @@ public class Dist
 
     //  Mark the pipe as matching. Subsequent call to sendToMatching
     //  will send message also to this pipe.
+    //  使管道处于可匹配状态  后续调用 sendToMatching 也会发送到这个管道
+    //  注意 管道必须在 pipes 里面，并且还是合格状态
     public void match(Pipe pipe)
     {
         int idx = pipes.indexOf(pipe);
@@ -69,11 +83,13 @@ public class Dist
         }
 
         //  If the pipe isn't eligible, ignore it.
+        //  如果管道不合格 忽略
         if (idx >= eligible) {
             return;
         }
 
         //  Mark the pipe as matching.
+        //  把管道放到 matching 管道部分的末尾， matching+1
         Collections.swap(pipes, idx, matching);
         matching++;
     }
@@ -85,6 +101,7 @@ public class Dist
     }
 
     //  Removes the pipe from the distributor object.
+    //  把管道移除
     public void terminated(Pipe pipe)
     {
         //  Remove the pipe from the list; adjust number of matching, active and/or
@@ -105,9 +122,11 @@ public class Dist
     }
 
     //  Activates pipe that have previously reached high watermark.
+    //  激活之前达到高水位的管道
     public void activated(Pipe pipe)
     {
         //  Move the pipe from passive to eligible state.
+        //  把管道从 passive 状态移动到合格状态
         if (eligible < pipes.size()) {
             Collections.swap(pipes, pipes.indexOf(pipe), eligible);
             eligible++;
@@ -115,6 +134,7 @@ public class Dist
 
         //  If there's no message being sent at the moment, move it to
         //  the active state.
+        //  如果没有消息在发送中，直接移到激活状态
         if (!more && active < pipes.size()) {
             Collections.swap(pipes, eligible - 1, active);
             active++;
@@ -122,8 +142,10 @@ public class Dist
     }
 
     //  Send the message to all the outbound pipes.
+    //  发送给所有激活管道
     public boolean sendToAll(Msg msg)
     {
+        //把匹配管道数量设置成激活的数量  这样发送给所有的管道
         matching = active;
         return sendToMatching(msg);
     }
@@ -147,7 +169,7 @@ public class Dist
         return true;
     }
 
-    //  Put the message to all active pipes.
+    //  Put the message to all active pipes. 把消息发到所有活着的管道上
     private void distribute(Msg msg)
     {
         //  If there are no matching pipes available, simply drop the message.
@@ -175,15 +197,19 @@ public class Dist
     private boolean write(Pipe pipe, Msg msg)
     {
         if (!pipe.write(msg)) {
+            //写失败 把pipe移出matching范围
             Collections.swap(pipes, pipes.indexOf(pipe), matching - 1);
             matching--;
+            //把pipe移出active范围
             Collections.swap(pipes, pipes.indexOf(pipe), active - 1);
             active--;
+            //把pipe移出合格范围
             Collections.swap(pipes, active, eligible - 1);
             eligible--;
             return false;
         }
         if (!msg.hasMore()) {
+            //如果该消息已发送完  管道往下游冲洗消息
             pipe.flush();
         }
         return true;

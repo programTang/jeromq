@@ -11,22 +11,28 @@ import zmq.util.Errno;
 public final class Mailbox implements IMailbox
 {
     //  The pipe to store actual commands.
+    //  存储命令的管道
     private final YPipe<Command> cpipe;
 
     //  Signaler to pass signals from writer thread to reader thread.
+    //  从写线程到读线程发射信号 的信号器
     private final Signaler signaler;
 
     //  There's only one thread receiving from the mailbox, but there
     //  is arbitrary number of threads sending. Given that ypipe requires
     //  synchronized access on both of its endpoints, we have to synchronize
     //  the sending side.
+    //  mailbox 的接收方只有一个线程，但是有无数的发送方线程，鉴于 ypipe 要求可以通过在两端访问（即同时写和读），
+    //  所以有必要在发送方设置同步锁
     private final Lock sync;
 
     //  True if the underlying pipe is active, i.e. when we are allowed to
     //  read commands from it.
+    //  true 代表所依赖的管道是激活的。 例如当我们可以从中读取命令时。
     private boolean active;
 
     // mailbox name, for better debugging
+    // 邮箱名字 为了更好的debug
     private final String name;
 
     private final Errno errno;

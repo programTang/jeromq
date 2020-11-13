@@ -789,6 +789,7 @@ public abstract class SocketBase extends Own implements IPollEvents, Pipe.IPipeE
             }
 
             //  Process pending commands, if any.
+            //  处理命令
             boolean brc = processCommands(0, true);
             if (!brc) {
                 return false;
@@ -1093,6 +1094,7 @@ public abstract class SocketBase extends Own implements IPollEvents, Pipe.IPipeE
         }
 
         //  Process all the commands available at the moment.
+        System.out.println(cmd);
         while (cmd != null) {
             cmd.process();
             cmd = mailbox.recv(0);
@@ -1253,6 +1255,7 @@ public abstract class SocketBase extends Own implements IPollEvents, Pipe.IPipeE
         //  If the object was already marked as destroyed, finish the deallocation.
         if (destroyed) {
             //  Remove the socket from the reaper's poller.
+            System.out.println(this + " 开始被销毁");
             poller.removeHandle(handle);
 
             //  Remove the socket from the context.

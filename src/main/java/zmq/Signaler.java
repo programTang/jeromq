@@ -19,6 +19,8 @@ import zmq.util.Utils;
 //  to signal_fd there can be at most one signal in the signaler at any
 //  given moment. Attempt to send a signal before receiving the previous
 //  one will result in undefined behaviour.
+//  等同于跨平台的 所受信号的文件描述符.
+//  然而跟信号描述符相反，它只能在任意时刻只能接受一个信号，
 final class Signaler implements Closeable
 {
     private interface IoOperation<O>
